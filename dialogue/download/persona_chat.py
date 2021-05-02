@@ -3,6 +3,7 @@ import logging
 import sys
 import requests
 import random
+from typing import List, Any, Dict, Tuple
 from dialogue import io, utils
 
 PERSONA_CHAT_URL = 'https://s3.amazonaws.com/datasets.huggingface.co/personachat/personachat_self_original.json'
@@ -11,7 +12,7 @@ BAD_INPUT_PHRASES = [
 ]
 
 
-def download_data():
+def download_data() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
 
     request = requests.get(url=PERSONA_CHAT_URL)
 
@@ -22,7 +23,7 @@ def download_data():
     return train_data, valid_data
 
 
-def get_dialogues(data):
+def get_dialogues(data: List[Dict[str, Any]]) -> List[List[str]]:
     dialogues = list()
 
     for sample in data:
@@ -40,7 +41,7 @@ def get_dialogues(data):
     return dialogues
 
 
-def dialogues2bi_encoder_samples(dialogues):
+def dialogues2bi_encoder_samples(dialogues: List[List[str]]) -> Tuple[io.RawTextData, List[str]]:
 
     unique_phrases = set()
     data = list()
@@ -49,10 +50,17 @@ def dialogues2bi_encoder_samples(dialogues):
 
         for i_phrase in range(len(dialogue) - 1):
 
+            if i_phrase > 0:
+                context = dialogue[:i_phrase]
+                if context and context[0] in BAD_INPUT_PHRASES:
+                    context = context[1:]
+            else:
+                context = list()
+
             sample = {
                 io.TYPES.phrase: dialogue[i_phrase],
                 io.TYPES.response: dialogue[i_phrase + 1],
-                io.TYPES.context: list() if i_phrase == 0 else dialogue[:i_phrase]
+                io.TYPES.context: context
             }
 
             data.append(sample)
@@ -64,7 +72,9 @@ def dialogues2bi_encoder_samples(dialogues):
     return data, unique_phrases
 
 
-def dialogues2cross_encoder_samples(dialogues, unique_phrases, n_negative: int = 4):
+def dialogues2cross_encoder_samples(dialogues: List[List[str]],
+                                    unique_phrases: List[str],
+                                    n_negative: int = 4) -> io.RawTextData:
 
     data = list()
 
@@ -72,11 +82,18 @@ def dialogues2cross_encoder_samples(dialogues, unique_phrases, n_negative: int =
 
         for i_phrase in range(len(dialogue) - 1):
 
+            if i_phrase > 0:
+                context = dialogue[:i_phrase]
+                if context and context[0] in BAD_INPUT_PHRASES:
+                    context = context[1:]
+            else:
+                context = list()
+
             sample = {
                 io.TYPES.phrase: dialogue[i_phrase],
                 io.TYPES.response: dialogue[i_phrase + 1],
                 io.TYPES.target: 1,
-                io.TYPES.context: list() if i_phrase == 0 else dialogue[:i_phrase]
+                io.TYPES.context: context
             }
 
             data.append(sample)
@@ -87,7 +104,7 @@ def dialogues2cross_encoder_samples(dialogues, unique_phrases, n_negative: int =
                     io.TYPES.phrase: dialogue[i_phrase],
                     io.TYPES.response: random.choice(unique_phrases),
                     io.TYPES.target: 0,
-                    io.TYPES.context: list() if i_phrase == 0 else dialogue[:i_phrase]
+                    io.TYPES.context: context
                 }
 
                 data.append(sample)
@@ -95,7 +112,8 @@ def dialogues2cross_encoder_samples(dialogues, unique_phrases, n_negative: int =
     return data
 
 
-def get_valid_samples(raw_data):
+def get_valid_samples(raw_data: List[Dict[str, Any]]) -> io.RawTextData:
+
     data = list()
 
     for sample in raw_data:

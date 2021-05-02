@@ -3,7 +3,7 @@ import sys
 import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from dialogue import download
+from dialogue.download import persona_chat
 
 
 @hydra.main(config_path='../conf/download/', config_name='config')
@@ -26,7 +26,7 @@ def main(config: DictConfig):
     os.makedirs(config.data_path, exist_ok=True)
 
     if config.data_type == 'persona_chat':
-        download.persona_chat.run(data_path=config.data_path, n_negative=config.cross_encoder_n_negative)
+        persona_chat.run(data_path=config.data_path, n_negative=config.cross_encoder_n_negative)
     else:
         raise ValueError('data_type not exist')
 
