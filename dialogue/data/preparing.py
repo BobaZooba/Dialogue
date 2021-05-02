@@ -67,11 +67,13 @@ class PairsPreparer(Preparer):
 
 class ContextPairsPreparer(PairsPreparer):
 
-    def __init__(self, tokenizer: tokenization.HuggingFaceTokenizer, context_separator: str = '@'):
+    def __init__(self, tokenizer: tokenization.HuggingFaceTokenizer,
+                 context_separator: str = '@', max_context: int = 4):
         super().__init__(tokenizer=tokenizer)
 
         self.context_index = self.tokenizer.tokenizer.vocab[context_separator]
         self.context_separator = context_separator + ' '
+        self.max_context = max_context
 
     def collate(self, batch: Sequence[io.TextBatch]) -> io.SequenceBatch:
 
@@ -79,7 +81,9 @@ class ContextPairsPreparer(PairsPreparer):
         responses = list()
 
         for sample in batch:
-            phrases.append(self.context_separator.join(sample[io.TYPES.context] + [sample[io.TYPES.phrase]]))
+            context = sample[io.TYPES.context] + [sample[io.TYPES.phrase]]
+            context = context[-self.max_context:]
+            phrases.append(self.context_separator.join(context))
             responses.append(sample[io.TYPES.response])
 
         phrase_batch = self.collect_batch(texts=phrases)
