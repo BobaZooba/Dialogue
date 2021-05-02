@@ -52,3 +52,21 @@ RawTextData = List[Dict[str, Union[str, List[str]]]]
 TextBatch = Dict[str, Union[str, int, float, Sequence[str]]]
 Batch = Dict[str, Tensor]
 SequenceBatch = Sequence[Batch]
+
+
+def batch_to_device(batch: Batch,
+                    device: Optional[torch.device] = None,
+                    except_list: Optional[List[str]] = None) -> Batch:
+
+    if device is None:
+        device = torch.device('cpu')
+
+    if except_list is None:
+        except_list = list()
+
+    for key, value in batch.items():
+        if key not in except_list:
+            if hasattr(value, 'to'):
+                batch[key] = value.to(device)
+
+    return batch

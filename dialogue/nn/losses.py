@@ -154,7 +154,7 @@ class CosineTripletLoss(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -172,7 +172,7 @@ class CosineTripletLoss(nn.Module):
         loss = torch.relu(self.margin - response_sim_matrix + negative_sim_matrix).mean()
 
         loss_output = {
-            io.KEYS.loss: loss,
+            io.TYPES.loss: loss,
             io.Keys.positive_similarity_matrix: response_sim_matrix,
             io.Keys.negative_similarity_matrix: negative_sim_matrix,
         }
@@ -208,7 +208,7 @@ class MultipleNegativeCosineTripletLoss(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -229,7 +229,7 @@ class MultipleNegativeCosineTripletLoss(nn.Module):
         loss = torch.relu(self.margin - difference.view(-1)).mean()
 
         loss_output = {
-            io.KEYS.loss: loss,
+            io.TYPES.loss: loss,
             io.Keys.positive_similarity_matrix: response_sim_matrix,
             io.Keys.negative_similarity_matrix: negative_sim_matrix,
         }
@@ -265,7 +265,7 @@ class TwoStreamMultipleNegativeCosineTripletLoss(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -299,7 +299,7 @@ class TwoStreamMultipleNegativeCosineTripletLoss(nn.Module):
         loss = torch.relu(self.margin - difference).mean()
 
         loss_output = {
-            io.KEYS.loss: loss,
+            io.TYPES.loss: loss,
             io.Keys.positive_similarity_matrix: response_sim_matrix
         }
 
@@ -359,7 +359,7 @@ class CentroidMultipleNegativeCosineTripletLoss(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -377,7 +377,7 @@ class CentroidMultipleNegativeCosineTripletLoss(nn.Module):
         loss = torch.relu(self.margin - response_sim_matrix + negative_sim_matrix).mean()
 
         loss_output = {
-            io.KEYS.loss: loss,
+            io.TYPES.loss: loss,
             io.Keys.positive_similarity_matrix: response_sim_matrix,
             io.Keys.negative_similarity_matrix: negative_sim_matrix,
         }
@@ -411,7 +411,7 @@ class TwoStreamCentroidMultipleNegativeCosineTripletLoss(CentroidMultipleNegativ
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -444,7 +444,7 @@ class TwoStreamCentroidMultipleNegativeCosineTripletLoss(CentroidMultipleNegativ
         loss = 0.5 * loss_context_response + 0.5 * loss_response_context
 
         loss_output = {
-            io.KEYS.loss: loss,
+            io.TYPES.loss: loss,
             io.Keys.positive_similarity_matrix: response_sim_matrix
         }
 
@@ -555,15 +555,15 @@ class BaseSoftmax(nn.Module, ABC):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context_embeddings, response_embeddings = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context_embeddings, response_embeddings = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         response_as_context_embeddings, context_as_response_embeddings = None, None
 
-        if io.KEYS.pseudo_head in response_batch:
-            response_as_context_embeddings = response_batch[io.KEYS.pseudo_head]
+        if io.TYPES.pseudo_head in response_batch:
+            response_as_context_embeddings = response_batch[io.TYPES.pseudo_head]
 
-        if io.KEYS.pseudo_head in context_batch:
-            context_as_response_embeddings = context_batch[io.KEYS.pseudo_head]
+        if io.TYPES.pseudo_head in context_batch:
+            context_as_response_embeddings = context_batch[io.TYPES.pseudo_head]
 
         if self.normalize:
 
@@ -735,20 +735,20 @@ class SoftmaxLoss(BaseSoftmax):
         similarity_matrix += margin
 
         loss_output = {
-            io.KEYS.loss: loss,
-            io.KEYS.positive_similarity_matrix: similarity_matrix.diag(),
-            io.KEYS.negative_similarity_matrix: utils.get_non_eye_matrix(similarity_matrix)
+            io.TYPES.loss: loss,
+            io.TYPES.positive_similarity_matrix: similarity_matrix.diag(),
+            io.TYPES.negative_similarity_matrix: utils.get_non_eye_matrix(similarity_matrix)
         }
 
         if context_similarity_matrix is not None:
             context_norms = utils.get_non_eye_matrix(context_norm * context_norm.t())
             context_similarity_matrix = context_similarity_matrix / context_norms
-            loss_output[io.KEYS.context_similarity_matrix] = context_similarity_matrix
+            loss_output[io.TYPES.context_similarity_matrix] = context_similarity_matrix
 
         if response_similarity_matrix is not None:
             response_norms = utils.get_non_eye_matrix(response_norm * response_norm.t())
             response_similarity_matrix = response_similarity_matrix / response_norms
-            loss_output[io.KEYS.response_similarity_matrix] = response_similarity_matrix
+            loss_output[io.TYPES.response_similarity_matrix] = response_similarity_matrix
 
         return loss_output
 
@@ -812,7 +812,7 @@ class CzarSoftmax(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         tensor_type = context.dtype
 
@@ -870,8 +870,8 @@ class CzarSoftmax(nn.Module):
             self.step += 1
 
         loss_output = {
-            io.KEYS.loss: loss,
-            io.KEYS.similarity_matrix: similarity_matrix
+            io.TYPES.loss: loss,
+            io.TYPES.similarity_matrix: similarity_matrix
         }
 
         return loss_output
@@ -910,7 +910,7 @@ class MiningSoftmaxLoss(SoftmaxLoss):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         if self.normalize:
             context = F.normalize(context)
@@ -941,8 +941,8 @@ class MiningSoftmaxLoss(SoftmaxLoss):
             self.step += 1
 
         loss_output = {
-            io.KEYS.loss: loss,
-            io.KEYS.similarity_matrix: similarity_matrix
+            io.TYPES.loss: loss,
+            io.TYPES.similarity_matrix: similarity_matrix
         }
 
         return loss_output
@@ -958,7 +958,7 @@ class BasePTMLLoss(nn.Module):
 
     def forward(self, context_batch: io.Batch, response_batch: io.Batch) -> io.Batch:
 
-        context, response = context_batch[io.KEYS.head], response_batch[io.KEYS.head]
+        context, response = context_batch[io.TYPES.head], response_batch[io.TYPES.head]
 
         embeddings = torch.cat((context, response))
         targets = torch.cat((torch.arange(context.size(0)), torch.arange(response.size(0))))
@@ -968,7 +968,7 @@ class BasePTMLLoss(nn.Module):
         loss = self.criterion(embeddings, targets, mined)
 
         loss_output = {
-            io.KEYS.loss: loss
+            io.TYPES.loss: loss
         }
 
         return loss_output
