@@ -643,7 +643,6 @@ class SoftmaxLoss(BaseSoftmax):
 
         context_similarity_matrix, response_similarity_matrix = None, None
 
-        # similarity_matrix
         similarity_matrix = context_embeddings @ response_embeddings.t()
 
         context_norm = context_embeddings.norm(dim=-1).type(tensor_type)

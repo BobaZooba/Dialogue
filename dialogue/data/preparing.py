@@ -79,7 +79,7 @@ class ContextPairsPreparer(PairsPreparer):
         responses = list()
 
         for sample in batch:
-            phrases.append(sample[io.TYPES.phrase])
+            phrases.append(self.context_separator.join(sample[io.TYPES.context] + [sample[io.TYPES.phrase]]))
             responses.append(sample[io.TYPES.response])
 
         phrase_batch = self.collect_batch(texts=phrases)
