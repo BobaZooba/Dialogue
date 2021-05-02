@@ -1,0 +1,14 @@
+hydra_colorlog==1.0.1
+wandb==0.10.25
+torch==1.8.1
+hydra-core==1.0.6
+transformers==4.5.0
+pandas==0.25.3
+omegaconf==2.0.6
+scikit-learn==0.22.1
+pytorch-lightning==1.2.1
+pytorch-metric-learning==0.9.88
+sentencepiece==0.1.95
+youtokentome==1.0.5
+tqdm==4.41.1
+psutil==5.6.7
