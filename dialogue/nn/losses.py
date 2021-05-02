@@ -682,7 +682,7 @@ class SoftmaxLoss(BaseSoftmax):
             pseudo_similarity_matrix = response_as_context_embeddings @ context_as_response_embeddings.t()
             row_similarity_matrix = torch.cat((row_similarity_matrix, pseudo_similarity_matrix), dim=1)
 
-        if self.inner:
+        if self.inner and response_as_context_embeddings is not None:
             pseudo_inner_context_embeddings = response_as_context_embeddings @ response_as_context_embeddings.t()
             pseudo_inner_context_embeddings = utils.get_non_eye_matrix(pseudo_inner_context_embeddings)
             row_similarity_matrix = torch.cat((row_similarity_matrix, pseudo_inner_context_embeddings), dim=1)
@@ -719,7 +719,7 @@ class SoftmaxLoss(BaseSoftmax):
                 column_similarity_matrix = torch.cat((column_similarity_matrix,
                                                       pseudo_similarity_matrix), dim=1)
 
-            if self.inner:
+            if self.inner and context_as_response_embeddings is not None:
                 pseudo_inner_response_embeddings = context_as_response_embeddings \
                                                    @ context_as_response_embeddings.t()
                 pseudo_inner_response_embeddings = utils.get_non_eye_matrix(pseudo_inner_response_embeddings)
