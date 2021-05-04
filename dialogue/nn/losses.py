@@ -519,6 +519,7 @@ class BaseSoftmax(nn.Module, ABC):
                  start_step: int = 0):
         super().__init__()
 
+        self.smoothing = smoothing
         self.normalize = normalize
         self.scaling_factor = scaling_factor
         self.max_margin = margin
@@ -748,6 +749,74 @@ class SoftmaxLoss(BaseSoftmax):
             response_norms = utils.get_non_eye_matrix(response_norm * response_norm.t())
             response_similarity_matrix = response_similarity_matrix / response_norms
             loss_output[io.TYPES.response_similarity_matrix] = response_similarity_matrix
+
+        return loss_output
+
+
+class DualSoftmaxLoss(BaseSoftmax):
+
+    def __init__(self,
+                 inner: bool = True,
+                 pseudo_context_response: bool = True,
+                 pseudo_duplicates: bool = True,
+                 pseudo_inner: bool = True,
+                 smoothing: float = 0.1,
+                 normalize: bool = True,
+                 scaling_factor: Optional[float] = 10.,
+                 margin: float = 0.,
+                 warm_up_steps: int = 0,
+                 start_step: int = 0):
+        super().__init__(
+            smoothing=smoothing,
+            normalize=normalize,
+            scaling_factor=scaling_factor,
+            margin=margin,
+            warm_up_steps=warm_up_steps,
+            start_step=start_step
+        )
+
+        self.inner = inner
+        self.pseudo_context_response = pseudo_context_response
+        self.pseudo_duplicates = pseudo_duplicates
+        self.pseudo_inner = pseudo_inner
+
+    def compute_loss(self,
+                     context_embeddings: Tensor,
+                     response_embeddings: Tensor,
+                     context_as_response_embeddings: Optional[Tensor] = None,
+                     response_as_context_embeddings: Optional[Tensor] = None) -> io.Batch:
+
+        tensor_type = context_embeddings.dtype
+
+        similarity_matrix = context_embeddings @ response_embeddings.t()
+
+        expanded_similarity_matrix = torch.cat((similarity_matrix, similarity_matrix.T), dim=-1)
+
+        mask = ~torch.cat((torch.eye(similarity_matrix.size(0)), torch.eye(similarity_matrix.size(0))), dim=-1).bool()
+
+        negative_similarity_matrix = expanded_similarity_matrix[mask].view(similarity_matrix.size(0),
+                                                                           similarity_matrix.size(0) * 2 - 2)
+
+        positive_similarity = similarity_matrix.diag().unsqueeze(dim=-1)
+
+        context_norm = context_embeddings.norm(dim=-1).type(tensor_type)
+        response_norm = response_embeddings.norm(dim=-1).type(tensor_type)
+
+        margin = (self.margin * context_norm * response_norm).unsqueeze(dim=-1)
+
+        positive_similarity -= margin
+
+        result_similarity_matrix = torch.cat((positive_similarity, negative_similarity_matrix), dim=-1)
+
+        targets = torch.zeros(similarity_matrix.size(0)).long().to(similarity_matrix.device)
+
+        loss = self.criterion(result_similarity_matrix, targets)
+
+        loss_output = {
+            io.TYPES.loss: loss,
+            io.TYPES.positive_similarity_matrix: similarity_matrix.diag(),
+            io.TYPES.negative_similarity_matrix: utils.get_non_eye_matrix(similarity_matrix)
+        }
 
         return loss_output
 
